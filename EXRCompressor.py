@@ -27,7 +27,7 @@ def has_meaningful_alpha(alpha_channel):
 def process_exr_files(input_dir, blacklist):
     """Go through a given set of files and compress them"""
     excluded_paths = []
-    print("Compressing in", input_dir)
+    print(f"Compressing in {input_dir}")
     if blacklist is not None:
         with open (blacklist) as blist:
             excluded_paths = [line.strip() for line in blist]
@@ -43,9 +43,10 @@ def process_exr_files(input_dir, blacklist):
         # Check if any part of the file's path is in the excluded paths
         is_excluded = any(excluded_path in str(file.resolve()) for excluded_path in excluded_paths)
         if is_excluded:
-            print("Skipping", file.name, "for compression (reason: blacklist)")
+            print(f"Skipping {file.name} for compression (reason: blacklist)")
             continue
         else:
+            print(f"Processing file {file}")
             infile = exr.File(str(file), separate_channels = True)
             header = infile.header()
             # Read channels
@@ -70,13 +71,14 @@ def process_exr_files(input_dir, blacklist):
 
             # Set DWAB compression with high quality
             new_header['compression'] = exr.DWAB_COMPRESSION
+            print(f"Compressing file {file.name}")
             #for ch in ['R','G','B']:
             #   new_channels[ch].pixels = truncate_to_16bit(new_channels[ch].pixels)
 
             # Write the file
             output_file_path = file
             with exr.File(new_header, new_channels) as outfile:
-                print(output_file_path)
+                print(f"writing to {output_file_path}" )
                 outfile.write(str(output_file_path))
 
 
