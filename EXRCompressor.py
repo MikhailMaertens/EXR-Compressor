@@ -40,40 +40,45 @@ def process_exr_files(input_dir, blacklist):
     input_path = Path(input_dir)
 
     for file in input_path.glob('**/*.exr'):
-        infile = exr.File(str(file), separate_channels = True)
-        header = infile.header()
-        # Read channels
-        channels = infile.channels()
-        if 'A' in channels: # Check for alpha channel
-            alpha_channel = channels['A'].pixels
-            if not has_meaningful_alpha(alpha_channel):
-                print(f"Removing meaningless alpha from {file.name}")
-                del channels['A']
-            else:
-                print(f"Alpha channel may contain meaningful data, skipping")
-                #channel_data['A'] = truncate_to_16bit(alpha_channel)
+        # Check if any part of the file's path is in the excluded paths
+        is_excluded = any(excluded_path in str(file.resolve()) for excluded_path in excluded_paths)
+        if is_excluded:
+            print("Skipping", file.name, "for compression (reason: blacklist)")
+            continue
         else:
-            print(f"No alpha channel found in {file.name}")
+            infile = exr.File(str(file), separate_channels = True)
+            header = infile.header()
+            # Read channels
+            channels = infile.channels()
+            if 'A' in channels: # Check for alpha channel
+                alpha_channel = channels['A'].pixels
+                if not has_meaningful_alpha(alpha_channel):
+                    print(f"Removing meaningless alpha from {file.name}")
+                    del channels['A']
+                else:
+                    print(f"Alpha channel may contain meaningful data, skipping")
+                    #channel_data['A'] = truncate_to_16bit(alpha_channel)
+            else:
+                print(f"No alpha channel found in {file.name}")
 
-        # Create new header
-        new_header = header
+            # Create new header
+            new_header = header
 
-        #Create new channels
-        new_channels = channels
+            #Create new channels
+            new_channels = channels
 
-        if str(file.parent) not in excluded_paths:
+
             # Set DWAB compression with high quality
             new_header['compression'] = exr.DWAB_COMPRESSION
             #for ch in ['R','G','B']:
-             #   new_channels[ch].pixels = truncate_to_16bit(new_channels[ch].pixels)
-        else:
-            print("Skipping", file.name, "for compression (reason: blacklist)")
+            #   new_channels[ch].pixels = truncate_to_16bit(new_channels[ch].pixels)
 
-        # Write the file
-        output_file_path = file
-        with exr.File(new_header, new_channels) as outfile:
-            print(output_file_path)
-            outfile.write(str(output_file_path))
+            # Write the file
+            output_file_path = file
+            with exr.File(new_header, new_channels) as outfile:
+                print(output_file_path)
+                outfile.write(str(output_file_path))
+
 
 
 if __name__ == "__main__":
