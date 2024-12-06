@@ -24,7 +24,7 @@ def has_meaningful_alpha(alpha_channel):
     return len(unique_values) > 2 or (len(unique_values) == 2 and (unique_values[0] != 0 and unique_values[1] != 1))
 
 
-def process_exr_files(input_dir, blacklist):
+def process_exr_files(input_dir, blacklist, check_alpha):
     """Go through a given set of files and compress them"""
     excluded_paths = []
     print(f"Compressing in {input_dir}")
@@ -51,16 +51,17 @@ def process_exr_files(input_dir, blacklist):
             header = infile.header()
             # Read channels
             channels = infile.channels()
-            if 'A' in channels: # Check for alpha channel
-                alpha_channel = channels['A'].pixels
-                if not has_meaningful_alpha(alpha_channel):
-                    print(f"Removing meaningless alpha from {file.name}")
-                    del channels['A']
+            if check_alpha:
+                if 'A' in channels: # Check for alpha channel
+                    alpha_channel = channels['A'].pixels
+                    if not has_meaningful_alpha(alpha_channel):
+                        print(f"Removing meaningless alpha from {file.name}")
+                        del channels['A']
+                    else:
+                        print(f"Alpha channel may contain meaningful data, skipping")
+                        #channel_data['A'] = truncate_to_16bit(alpha_channel)
                 else:
-                    print(f"Alpha channel may contain meaningful data, skipping")
-                    #channel_data['A'] = truncate_to_16bit(alpha_channel)
-            else:
-                print(f"No alpha channel found in {file.name}")
+                    print(f"No alpha channel found in {file.name}")
 
             # Create new header
             new_header = header
@@ -94,9 +95,10 @@ if __name__ == "__main__":
     parser.add_argument('input_directory', type=Path, help='Directory containing EXR files to process')
     parser.add_argument('--blacklist-directory', type=Path, nargs='?', const=None, default=None,
                         help='Optional directory containing EXR files to ignore (default: None)')
-
+    parser.add_argument('--no-check-alpha', action='store_false',
+                        help="Do not check for meaningful alpha channels in EXR files.")
     # Parse the command-line arguments
     args = parser.parse_args()
 
     # Call the process_exr_files function with parsed arguments
-    process_exr_files(args.input_directory, args.blacklist_directory)
+    process_exr_files(args.input_directory, args.blacklist_directory, args.no_check_alpha)
