@@ -24,7 +24,7 @@ def has_meaningful_alpha(alpha_channel):
     return len(unique_values) > 2 or (len(unique_values) == 2 and (unique_values[0] != 0 and unique_values[1] != 1))
 
 
-def process_exr_files(input_dir, blacklist, check_alpha):
+def process_exr_files(input_dir, compression_type, blacklist, check_alpha):
     """Go through a given set of files and compress them"""
     excluded_paths = []
     print(f"Compressing in {input_dir}")
@@ -46,6 +46,7 @@ def process_exr_files(input_dir, blacklist, check_alpha):
             print(f"Skipping {file.name} for compression (reason: blacklist)")
             continue
         else:
+            modified = False
             print(f"Processing file {file}")
             infile = exr.File(str(file), separate_channels = True)
             header = infile.header()
@@ -56,31 +57,49 @@ def process_exr_files(input_dir, blacklist, check_alpha):
                     alpha_channel = channels['A'].pixels
                     if not has_meaningful_alpha(alpha_channel):
                         print(f"Removing meaningless alpha from {file.name}")
+                        modified = True
                         del channels['A']
                     else:
                         print(f"Alpha channel may contain meaningful data, skipping")
                         #channel_data['A'] = truncate_to_16bit(alpha_channel)
                 else:
                     print(f"No alpha channel found in {file.name}")
-
             # Create new header
             new_header = header
 
             #Create new channels
             new_channels = channels
 
+            if compression_type is not None:
+                compression_settings = {
+                    "NONE": exr.NO_COMPRESSION,
+                    "RLE": exr.RLE_COMPRESSION,
+                    "ZIPS": exr.ZIPS_COMPRESSION,
+                    "ZIP": exr.ZIP_COMPRESSION,
+                    "PIZ": exr.PIZ_COMPRESSION,
+                    "PXR24": exr.PXR24_COMPRESSION,
+                    "B44": exr.B44_COMPRESSION,
+                    "B44A": exr.B44A_COMPRESSION,
+                    "DWAA": exr.DWAA_COMPRESSION,
+                    "DWAB": exr.DWAB_COMPRESSION,
+                }
 
-            # Set DWAB compression with high quality
-            new_header['compression'] = exr.DWAB_COMPRESSION
-            print(f"Compressing file {file.name}")
-            #for ch in ['R','G','B']:
-            #   new_channels[ch].pixels = truncate_to_16bit(new_channels[ch].pixels)
+                # Set selected compression
+                if header['compression'] != compression_settings[compression_type]:
+                    new_header['compression'] = compression_settings[compression_type]
+                    print(f"Compressing file {file.name} with {compression_type}")
+                    modified = True
+                #for ch in ['R','G','B']:
+                #   new_channels[ch].pixels = truncate_to_16bit(new_channels[ch].pixels)
 
             # Write the file
-            output_file_path = file
-            with exr.File(new_header, new_channels) as outfile:
-                print(f"writing to {output_file_path}" )
-                outfile.write(str(output_file_path))
+            if not modified:
+                print(f"Skipping {file.name}, (reason: already compressed)")
+            else:
+                output_file_path = file
+                with exr.File(new_header, new_channels) as outfile:
+                    print(f"writing to {output_file_path}" )
+                    outfile.write(str(output_file_path))
 
 
 
@@ -93,6 +112,7 @@ if __name__ == "__main__":
 
     # Add arguments for input and optional blacklist directories
     parser.add_argument('input_directory', type=Path, help='Directory containing EXR files to process')
+    parser.add_argument('--compression-type', type=str, default=None, help='Type of compression to use (default: use files\' existing compression')
     parser.add_argument('--blacklist-directory', type=Path, nargs='?', const=None, default=None,
                         help='Optional directory containing EXR files to ignore (default: None)')
     parser.add_argument('--no-check-alpha', action='store_false',
@@ -101,4 +121,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Call the process_exr_files function with parsed arguments
-    process_exr_files(args.input_directory, args.blacklist_directory, args.no_check_alpha)
+    process_exr_files(args.input_directory, args.compression_type, args.blacklist_directory, args.no_check_alpha)
