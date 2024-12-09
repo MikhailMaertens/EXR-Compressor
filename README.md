@@ -1,4 +1,4 @@
-# EXR File Processor
+# EXR Compressor
 
 This is a Python script that recursively finds and compresses OpenEXR (`.exr`) files in a specified directory and optionally strips unnecessary alpha channels, with support for blacklisting directories.
 
