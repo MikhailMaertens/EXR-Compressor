@@ -41,8 +41,6 @@ python process_exr_files.py /path/to/input_directory --compression-type DWAA
 
   -`DWAB`
 
-For more information on compression types,
-
 ### Optional Arguments
 - `--blacklist-directory`: Path to a file of newline-delimited paths to exclude from being processed.
 - `--no-check-alpha`: Do not check for meaningful alpha channels in EXR files.
