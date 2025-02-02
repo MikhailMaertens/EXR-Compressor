@@ -2,20 +2,6 @@ from pathlib import Path
 import OpenEXR as exr
 import numpy as np
 
-##def truncate_to_16bit(data):
-##    """Truncate float32 data to 16-bit half-float."""
-##    if data.dtype == np.float32:
-##        # Convert from float32 to half-float (float16)
-##        data = data.astype(np.float16).view('u2')
-##        return data
-##    elif data.dtype == np.uint32:
-##        # Truncate uint32 to uint16
-##        data = np.bitwise_and(data, 0xFFFF).astype(np.uint16)
-##        return data
-##    else:
-##        raise ValueError("Unsupported data type for truncation")
-##
-## Didn't seem to have much of an impact in testing, so disabled for now. May have a second look later
 
 def has_meaningful_alpha(alpha_channel):
     """Check if the alpha channel contains meaningful data."""
@@ -24,7 +10,7 @@ def has_meaningful_alpha(alpha_channel):
     return len(unique_values) > 2 or (len(unique_values) == 2 and (unique_values[0] != 0 and unique_values[1] != 1))
 
 
-def process_exr_files(input_dir, compression_type, blacklist, check_alpha):
+def process_exr_files(input_dir, compression_type, blacklist, check_alpha, trunc_half_float):
     """Go through a given set of files and compress them"""
     excluded_paths = []
     print(f"Compressing in {input_dir}")
@@ -61,13 +47,12 @@ def process_exr_files(input_dir, compression_type, blacklist, check_alpha):
                         del channels['A']
                     else:
                         print(f"Alpha channel may contain meaningful data, skipping")
-                        #channel_data['A'] = truncate_to_16bit(alpha_channel)
                 else:
                     print(f"No alpha channel found in {file.name}")
             # Create new header
             new_header = header
 
-            #Create new channels
+            # Create new channels
             new_channels = channels
 
             if compression_type is not None:
@@ -89,8 +74,21 @@ def process_exr_files(input_dir, compression_type, blacklist, check_alpha):
                     new_header['compression'] = compression_settings[compression_type]
                     print(f"Compressing file {file.name} with {compression_type}")
                     modified = True
-                #for ch in ['R','G','B']:
-                #   new_channels[ch].pixels = truncate_to_16bit(new_channels[ch].pixels)
+            # Truncate to 16 bit half-float
+            if trunc_half_float:
+                for name, channel in channels.items():
+                    print(name)
+                    if name in ['R','G','B','A']:
+                        pixels = channel.pixels
+                        # Convert to float16 if not already
+                        if pixels.dtype != np.float16:
+                            print("Converting",name,"channel to 16 bit")
+                            pixels = pixels.astype(np.float16)
+                            modified = True
+                        new_channels[name] = pixels
+                    else:
+                        # Copy other channels as they are
+                        new_channels[name] = channel.pixels.copy()
 
             # Write the file
             if not modified:
@@ -117,8 +115,10 @@ if __name__ == "__main__":
                         help='Optional directory containing EXR files to ignore (default: None)')
     parser.add_argument('--no-check-alpha', action='store_false',
                         help="Do not check for meaningful alpha channels in EXR files.")
+    parser.add_argument('--no-half-float', action='store_false',
+                        help="Do not cast 32-bit data to 16 bit half float.")
     # Parse the command-line arguments
     args = parser.parse_args()
 
     # Call the process_exr_files function with parsed arguments
-    process_exr_files(args.input_directory, args.compression_type, args.blacklist_directory, args.no_check_alpha)
+    process_exr_files(args.input_directory, args.compression_type, args.blacklist_directory, args.no_check_alpha, args.no_half_float)
