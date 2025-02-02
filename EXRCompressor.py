@@ -77,11 +77,10 @@ def process_exr_files(input_dir, compression_type, blacklist, check_alpha, trunc
             # Truncate to 16 bit half-float
             if trunc_half_float:
                 for name, channel in channels.items():
-                    print(name)
                     if name in ['R','G','B','A']:
                         pixels = channel.pixels
                         # Convert to float16 if not already
-                        if pixels.dtype != np.float16:
+                        if pixels.dtype == np.float32:
                             print("Converting",name,"channel to 16 bit")
                             pixels = pixels.astype(np.float16)
                             modified = True
