@@ -55,7 +55,7 @@ If your files are already compressed using a lossy compression method, you shoul
 
 ### Truncation
 
-By default the script will convert 32-bit floats to 16 bit, unless the ```--no-half-float``` argument is passed. 16 bit is much more efficient to store than 32-bit, and is usually fine for normal image data, but be careful- some uses (e.g. cryptomattes) require 32 bit precision. **If your data needs to be in 32-bit precision, you should think very carefully about how and whether you really want this script on those files. If it needs 32-bit precision, it likely can't use lossy compression of any kind.**
+By default the script will convert 32-bit floats to 16 bit, unless the ```--no-half-float``` argument is passed. 16 bit is much more efficient to store than 32-bit, and is usually fine for normal image data, but be careful- some uses (e.g. cryptomattes) require 32 bit precision. **If your data needs to be in 32-bit precision, you should think very carefully about how and whether you really want to use this script on those files. If it needs 32-bit precision, it likely can't be used with lossy compression of any kind.**
 
 ### Examples
 
