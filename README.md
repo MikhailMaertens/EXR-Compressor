@@ -1,6 +1,6 @@
 # EXR Compressor
 
-This is a Python script that recursively finds and compresses OpenEXR (`.exr`) files in a specified directory, as well as optionally truncating 32-bit pixel data to 16 bit half precision floats, and optionally strips unnecessary alpha channels, with support for blacklisting directories.
+This is a Python script that recursively finds and compresses OpenEXR (`.exr`) files in a specified directory, optionally truncating 32-bit pixel data to 16 bit half precision floats, as well as optionally stripping unnecessary alpha channels, with support for blacklisting directories.
 
 ## Prerequisites
 
